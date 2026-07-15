@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Shopping Assistant</title>
+
+<!-- External Libraries -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" />
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* ===========================
+   RESET & ROOT VARIABLES
+=========================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #111118;
+  --bg-card: rgba(255,255,255,0.04);
+  --bg-card-hover: rgba(255,255,255,0.07);
+  --glass: rgba(255,255,255,0.05);
+  --glass-border: rgba(255,255,255,0.08);
+  --neon-blue: #3b82f6;
+  --neon-purple: #8b5cf6;
+  --neon-cyan: #06b6d4;
+  --neon-pink: #ec4899;
+  --accent-gradient: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  --border: rgba(255,255,255,0.08);
+  --sidebar-width: 300px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-glow-blue: 0 0 20px rgba(59,130,246,0.3);
+  --shadow-glow-purple: 0 0 20px rgba(139,92,246,0.3);
+  --transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+/* ===========================
+   LAYOUT
+=========================== */
+#app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ===========================
+   SIDEBAR
+=========================== */
+#sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: var(--transition);
+  overflow: hidden;
+  position: relative;
+  z-index: 100;
+}
+
+#sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  border-right: none;
+}
+
+.sidebar-inner {
+  width: var(--sidebar-width);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Logo */
+.sidebar-logo {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sidebar-logo .logo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--accent-gradient);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-glow-blue);
+}
+
+.logo-text h1 { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; }
+.logo-text p { font-size: 11px; color: var(--text-muted); }
+
+/* Sidebar scroll area */
+.sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 0 8px;
+}
+
+/* Section label */
+.sidebar-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 10px 18px 4px;
+}
+
+/* Sidebar nav items */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: var(--transition);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-left: 3px solid transparent;
+  user-select: none;
+}
+
+.sidebar-item:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-item.active {
+  background: rgba(59,130,246,0.1);
+  color: var(--neon-blue);
+  border-left-color: var(--neon-blue);
+}
+
+.sidebar-item i { width: 16px; text-align: center; font-size: 13px; }
+
+/* API Settings box */
+.api-settings-box {
+  margin: 4px 12px;
+  padding: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.api-settings-box label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.api-input-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.api-input-row input {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: 'Inter', monospace;
+  outline: none;
+  transition: var(--transition);
+  min-width: 0;
+}
+
+.api-input-row input:focus { border-color: var(--neon-blue); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+
+.icon-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.icon-btn:hover { background: rgba(59,130,246,0.15); color: var(--neon-blue); border-color: var(--neon-blue); }
+
+.api-btn-row { display: flex; gap: 6px; }
+
+.btn-sm {
+  flex: 1;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.btn-sm:hover { background: rgba(59,130,246,0.15); color: var(--neon-blue); border-color: var(--neon-blue); }
+.btn-sm.primary { background: var(--accent-gradient); color: #fff; border-color: transparent; }
+.btn-sm.primary:hover { opacity: 0.85; }
+.btn-sm.success { background: rgba(16,185,129,0.15); color: #10b981; border-color: rgba(16,185,129,0.3); }
+
+/* Quick prompts */
+.quick-prompts-list { padding: 4px 12px 8px; display: flex; flex-direction: column; gap: 4px; }
+
+.quick-prompt-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quick-prompt-btn:hover {
+  background: rgba(139,92,246,0.12);
+  color: var(--neon-purple);
+  border-color: rgba(139,92,246,0.3);
+  transform: translateX(2px);
+}
+
+.quick-prompt-btn i { font-size: 11px; opacity: 0.7; }
+
+/* Conversation history */
+.history-list { padding: 4px 12px 8px; display: flex; flex-direction: column; gap: 3px; }
+
+.history-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: var(--transition);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.history-item:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+
+/* Stats mini */
+.stats-mini {
+  margin: 4px 12px 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.stat-mini-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  text-align: center;
+}
+
+.stat-mini-card .val { font-size: 18px; font-weight: 700; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.stat-mini-card .lbl { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+/* Sidebar footer */
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sidebar-footer .btn-sm { flex: 1; text-align: center; }
+
+/* ===========================
+   MAIN AREA
+=========================== */
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Top bar */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.topbar-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+#toggle-sidebar-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+#toggle-sidebar-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+
+.topbar-title { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar-subtitle { font-size: 11px; color: var(--text-muted); }
+
+.tab-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.tab-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.tab-btn.active { background: var(--accent-gradient); color: #fff; border-color: transparent; box-shadow: var(--shadow-glow-blue); }
+
+.online-dot {
+  width: 8px; height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #10b981;
+  flex-shrink: 0;
+}
+
+/* ===========================
+   VIEWS
+=========================== */
+.view { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+.view.active { display: flex; }
+
+/* ===========================
+   CHAT VIEW
+=========================== */
+#chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Welcome card */
+.welcome-card {
+  text-align: center;
+  padding: 40px 20px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.welcome-icon {
+  width: 72px;
+  height: 72px;
+  background: var(--accent-gradient);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 28px;
+  box-shadow: var(--shadow-glow-blue);
+}
+
+.welcome-card h2 { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+.welcome-card p { color: var(--text-secondary); font-size: 14px; line-height: 1.7; max-width: 420px; margin: 0 auto; }
+
+/* Message bubbles */
+.msg-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  animation: fadeInUp 0.3s ease;
+}
+
+.msg-row.user { flex-direction: row-reverse; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.msg-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.msg-row.user .msg-avatar { background: var(--accent-gradient); }
+.msg-row.assistant .msg-avatar { background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.3); color: var(--neon-purple); }
+
+.msg-body { max-width: 75%; display: flex; flex-direction: column; gap: 4px; }
+.msg-row.user .msg-body { align-items: flex-end; }
+
+.msg-meta { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted); }
+
+.msg-bubble {
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.msg-row.user .msg-bubble {
+  background: var(--accent-gradient);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.msg-row.assistant .msg-bubble {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+  color: var(--text-primary);
+}
+
+/* Markdown inside bubble */
+.msg-bubble h1, .msg-bubble h2, .msg-bubble h3 { margin: 12px 0 6px; font-weight: 700; }
+.msg-bubble h1 { font-size: 18px; }
+.msg-bubble h2 { font-size: 16px; }
+.msg-bubble h3 { font-size: 14px; }
+.msg-bubble p { margin: 6px 0; }
+.msg-bubble ul, .msg-bubble ol { margin: 8px 0 8px 20px; }
+.msg-bubble li { margin: 3px 0; }
+.msg-bubble strong { font-weight: 700; }
+.msg-bubble em { font-style: italic; }
+.msg-bubble hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+.msg-bubble table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
+.msg-bubble th, .msg-bubble td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+.msg-bubble th { background: rgba(255,255,255,0.05); font-weight: 700; }
+.msg-bubble tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+.msg-bubble blockquote { border-left: 3px solid var(--neon-purple); padding-left: 12px; margin: 10px 0; color: var(--text-secondary); font-style: italic; }
+
+.msg-bubble code {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #7dd3fc;
+}
+
+.msg-bubble pre {
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  overflow-x: auto;
+  margin: 10px 0;
+  position: relative;
+}
+
+.msg-bubble pre code { background: none; border: none; padding: 0; color: #a5f3fc; font-size: 13px; }
+
+.copy-code-btn {
+  position: absolute;
+  top: 8px; right: 8px;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.copy-code-btn:hover { background: rgba(59,130,246,0.2); color: var(--neon-blue); }
+
+.msg-actions { display: flex; gap: 6px; align-items: center; }
+
+.msg-action-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.msg-action-btn:hover { background: var(--bg-card); border-color: var(--border); color: var(--text-secondary); }
+
+/* Image preview in message */
+.msg-image { max-width: 240px; border-radius: var(--radius-sm); margin-bottom: 6px; border: 1px solid var(--border); }
+
+/* Typing indicator */
+.typing-row { display: flex; gap: 12px; align-items: flex-start; }
+.typing-bubble {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  border-bottom-left-radius: 4px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.typing-dot {
+  width: 7px; height: 7px;
+  background: var(--neon-purple);
+  border-radius: 50%;
+  animation: typingBounce 1.2s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* ===========================
+   CHAT INPUT BAR
+=========================== */
+#chat-input-area {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.input-image-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.input-image-preview img { height: 48px; border-radius: 4px; object-fit: cover; }
+.input-image-preview .remove-img { margin-left: auto; cursor: pointer; color: var(--text-muted); font-size: 14px; }
+.input-image-preview .remove-img:hover { color: #f87171; }
+
+.input-box {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+  transition: var(--transition);
+}
+
+.input-box:focus-within { border-color: var(--neon-blue); box-shadow: 0 0 0 2px rgba(59,130,246,0.12); }
+
+#chat-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  resize: none;
+  max-height: 160px;
+  min-height: 22px;
+  line-height: 1.6;
+}
+
+#chat-input::placeholder { color: var(--text-muted); }
+
+.input-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+.input-icon-btn {
+  width: 34px;
+  height: 34px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.input-icon-btn:hover { background: rgba(59,130,246,0.12); color: var(--neon-blue); border-color: rgba(59,130,246,0.3); }
+.input-icon-btn.listening { background: rgba(239,68,68,0.15); color: #f87171; border-color: rgba(239,68,68,0.3); animation: pulse 1.2s infinite; }
+
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+
+#send-btn {
+  width: 34px; height: 34px;
+  background: var(--accent-gradient);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 13px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-glow-blue);
+}
+
+#send-btn:hover { opacity: 0.85; transform: scale(1.05); }
+#send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.input-hint { font-size: 11px; color: var(--text-muted); margin-top: 8px; text-align: center; }
+#file-input { display: none; }
+
+/* ===========================
+   DASHBOARD VIEW
+=========================== */
+#dashboard-view {
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  transition: var(--transition);
+}
+
+.dashboard-card:hover { background: var(--bg-card-hover); border-color: rgba(255,255,255,0.12); transform: translateY(-2px); }
+.dashboard-card.wide { grid-column: span 2; }
+
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.card-title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.card-title i { color: var(--neon-blue); }
+.card-badge { font-size: 10px; padding: 2px 8px; border-radius: 99px; background: rgba(59,130,246,0.15); color: var(--neon-blue); font-weight: 600; }
+
+/* Stat cards */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; max-width: 1200px; margin: 0 auto 16px; }
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: var(--transition);
+}
+
+.stat-card:hover { background: var(--bg-card-hover); transform: translateY(-2px); }
+
+.stat-icon {
+  width: 42px; height: 42px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.stat-icon.blue { background: rgba(59,130,246,0.15); color: var(--neon-blue); }
+.stat-icon.purple { background: rgba(139,92,246,0.15); color: var(--neon-purple); }
+.stat-icon.cyan { background: rgba(6,182,212,0.15); color: var(--neon-cyan); }
+.stat-icon.pink { background: rgba(236,72,153,0.15); color: var(--neon-pink); }
+
+.stat-info .val { font-size: 22px; font-weight: 800; }
+.stat-info .lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+/* Product comparison */
+.compare-grid { display: flex; flex-direction: column; gap: 10px; }
+
+.compare-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.compare-item .prod-name { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.compare-item .prod-score-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.compare-item .prod-score-label { font-size: 11px; color: var(--text-muted); width: 80px; }
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent-gradient);
+  transition: width 0.8s ease;
+}
+
+/* Budget allocation */
+.budget-list { display: flex; flex-direction: column; gap: 8px; }
+.budget-item { display: flex; align-items: center; gap: 10px; }
+.budget-color { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.budget-label { font-size: 12px; flex: 1; }
+.budget-pct { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+
+/* Shopping list */
+.shopping-list { display: flex; flex-direction: column; gap: 8px; }
+.shopping-list-item { display: flex; align-items: center; gap: 10px; padding: 8px; background: rgba(255,255,255,0.02); border-radius: var(--radius-sm); }
+.shopping-list-item .item-check { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border); flex-shrink: 0; cursor: pointer; }
+.shopping-list-item .item-check.checked { background: var(--neon-blue); border-color: var(--neon-blue); display: flex; align-items: center; justify-content: center; font-size: 9px; color: #fff; }
+.shopping-list-item .item-name { flex: 1; font-size: 13px; }
+.shopping-list-item .item-price { font-size: 12px; color: var(--neon-cyan); font-weight: 600; }
+
+/* Trending categories */
+.trending-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.trending-cat {
+  padding: 10px 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.trending-cat:hover { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3); }
+.trending-cat i { display: block; font-size: 20px; margin-bottom: 4px; }
+.trending-cat span { font-size: 11px; color: var(--text-secondary); }
+
+/* ===========================
+   NOTIFICATIONS
+=========================== */
+#notification-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.notification {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  max-width: 320px;
+  pointer-events: all;
+  animation: slideInRight 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.notification.success { border-left: 3px solid #10b981; }
+.notification.error   { border-left: 3px solid #f87171; }
+.notification.info    { border-left: 3px solid var(--neon-blue); }
+.notification.warning { border-left: 3px solid #fbbf24; }
+
+.notification i { font-size: 14px; }
+.notification.success i { color: #10b981; }
+.notification.error   i { color: #f87171; }
+.notification.info    i { color: var(--neon-blue); }
+.notification.warning i { color: #fbbf24; }
+
+@keyframes slideInRight {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(120%); opacity: 0; }
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+@media (max-width: 768px) {
+  :root { --sidebar-width: 280px; }
+
+  #sidebar {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    z-index: 200;
+    box-shadow: 4px 0 30px rgba(0,0,0,0.5);
+  }
+
+  #sidebar.collapsed { width: 0; min-width: 0; }
+
+  .stat-row { grid-template-columns: repeat(2, 1fr); }
+  .dashboard-card.wide { grid-column: span 1; }
+  #chat-messages { padding: 16px 12px; }
+  #chat-input-area { padding: 10px 12px; }
+  .msg-body { max-width: 88%; }
+  .tab-btn span { display: none; }
+}
+
+@media (max-width: 480px) {
+  .stat-row { grid-template-columns: 1fr 1fr; }
+  .trending-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ===========================
+   MISC UTILITIES
+=========================== */
+.gradient-text { background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hidden { display: none !important; }
+.chart-wrapper { position: relative; height: 200px; }
+</style>
+</head>
+
+<body>
+<div id="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <div id="sidebar">
+    <div class="sidebar-inner">
+
+      <!-- Logo -->
+      <div class="sidebar-logo">
+        <div class="logo-row">
+          <div class="logo-icon"><i class="fas fa-shopping-bag"></i></div>
+          <div class="logo-text">
+            <h1 class="gradient-text">ShopAssist AI</h1>
+            <p>Powered by Llama 3.3 70B</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scroll area -->
+      <div class="sidebar-scroll">
+
+        <!-- API Settings -->
+        <div class="sidebar-section-label">API Settings</div>
+        <div class="api-settings-box">
+          <label>Groq API Key</label>
+          <div class="api-input-row">
+            <input type="password" id="api-key-input" placeholder="gsk_..." />
+            <button class="icon-btn" id="toggle-key-btn" title="Show/Hide"><i class="fas fa-eye"></i></button>
+          </div>
+          <div class="api-btn-row">
+            <button class="btn-sm primary" id="save-key-btn"><i class="fas fa-save"></i> Save</button>
+            <button class="btn-sm" id="test-key-btn"><i class="fas fa-plug"></i> Test</button>
+            <button class="btn-sm" id="clear-key-btn" title="Remove Key"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+
+        <!-- Nav items -->
+        <div class="sidebar-section-label">Navigation</div>
+        <div class="sidebar-item active" data-view="chat"><i class="fas fa-comments"></i> Chat Assistant</div>
+        <div class="sidebar-item" data-view="dashboard"><i class="fas fa-chart-bar"></i> Dashboard</div>
+
+        <!-- Quick Prompts -->
+        <div class="sidebar-section-label">Quick Prompts</div>
+        <div class="quick-prompts-list" id="quick-prompts"></div>
+
+        <!-- Chat History -->
+        <div class="sidebar-section-label">Conversation History</div>
+        <div class="history-list" id="history-list">
+          <div style="font-size:12px; color:var(--text-muted); padding: 4px 0;">No history yet.</div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="sidebar-section-label">Live Statistics</div>
+        <div class="stats-mini">
+          <div class="stat-mini-card"><div class="val" id="stat-msgs">0</div><div class="lbl">Messages</div></div>
+          <div class="stat-mini-card"><div class="val" id="stat-tokens">0</div><div class="lbl">Est. Tokens</div></div>
+          <div class="stat-mini-card"><div class="val" id="stat-duration">0m</div><div class="lbl">Session</div></div>
+          <div class="stat-mini-card"><div class="val" id="stat-convlen">0</div><div class="lbl">Conv. Length</div></div>
+        </div>
+
+      </div><!-- /sidebar-scroll -->
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <button class="btn-sm" id="export-chat-btn" title="Export Chat"><i class="fas fa-download"></i> Export</button>
+        <button class="btn-sm" id="import-chat-btn" title="Import Chat"><i class="fas fa-upload"></i> Import</button>
+        <button class="btn-sm" id="clear-chat-btn" title="Clear Chat"><i class="fas fa-trash-alt"></i> Clear</button>
+        <input type="file" id="import-file-input" accept=".json" style="display:none;" />
+      </div>
+
+    </div>
+  </div>
+  <!-- /SIDEBAR -->
+
+  <!-- ===================== MAIN ===================== -->
+  <div id="main">
+
+    <!-- Top bar -->
+    <div id="topbar">
+      <div class="topbar-left">
+        <button id="toggle-sidebar-btn"><i class="fas fa-bars"></i></button>
+        <div>
+          <div class="topbar-title">AI Shopping Assistant</div>
+          <div class="topbar-subtitle">Ask me anything about products &amp; shopping</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="online-dot" title="Online"></div>
+        <button class="tab-btn active" data-view="chat"><i class="fas fa-comments"></i> <span>Chat</span></button>
+        <button class="tab-btn" data-view="dashboard"><i class="fas fa-chart-bar"></i> <span>Dashboard</span></button>
+      </div>
+    </div>
+
+    <!-- CHAT VIEW -->
+    <div class="view active" id="chat-view">
+      <div id="chat-messages">
+        <!-- Welcome -->
+        <div class="welcome-card" id="welcome-card">
+          <div class="welcome-icon"><i class="fas fa-shopping-cart"></i></div>
+          <h2>Welcome to <span class="gradient-text">ShopAssist AI</span></h2>
+          <p>Your intelligent shopping companion. Ask me for product recommendations, comparisons, budget advice, gift ideas, and more — powered by Llama 3.3 70B.</p>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div id="chat-input-area">
+        <div id="image-preview-bar" class="hidden"></div>
+        <div class="input-box">
+          <textarea id="chat-input" rows="1" placeholder="Ask about products, compare items, get shopping advice..."></textarea>
+          <div class="input-actions">
+            <button class="input-icon-btn" id="voice-btn" title="Voice Input"><i class="fas fa-microphone"></i></button>
+            <button class="input-icon-btn" id="image-btn" title="Upload Image"><i class="fas fa-image"></i></button>
+            <button id="send-btn" title="Send (Enter)"><i class="fas fa-paper-plane"></i></button>
+          </div>
+        </div>
+        <div class="input-hint">Enter to send &nbsp;·&nbsp; Shift+Enter for new line</div>
+        <input type="file" id="file-input" accept="image/*" />
+      </div>
+    </div>
+    <!-- /CHAT VIEW -->
+
+    <!-- DASHBOARD VIEW -->
+    <div class="view" id="dashboard-view">
+
+      <!-- Stat row -->
+      <div class="stat-row" id="dash-stat-row">
+        <div class="stat-card">
+          <div class="stat-icon blue"><i class="fas fa-comment-dots"></i></div>
+          <div class="stat-info"><div class="val" id="dash-msgs">0</div><div class="lbl">Total Messages</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon purple"><i class="fas fa-brain"></i></div>
+          <div class="stat-info"><div class="val" id="dash-tokens">0</div><div class="lbl">Est. Tokens</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon cyan"><i class="fas fa-clock"></i></div>
+          <div class="stat-info"><div class="val" id="dash-duration">0m</div><div class="lbl">Session Time</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon pink"><i class="fas fa-list"></i></div>
+          <div class="stat-info"><div class="val" id="dash-convlen">0</div><div class="lbl">Conv. Length</div></div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid" id="dashboard-grid">
+
+        <!-- Category Distribution Chart -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-chart-pie"></i> Category Distribution</div>
+          </div>
+          <div class="chart-wrapper"><canvas id="cat-chart"></canvas></div>
+        </div>
+
+        <!-- Budget Allocation Chart -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-wallet"></i> Budget Allocation</div>
+          </div>
+          <div class="chart-wrapper"><canvas id="budget-chart"></canvas></div>
+          <div class="budget-list" id="budget-legend"></div>
+        </div>
+
+        <!-- Product Comparison -->
+        <div class="dashboard-card wide" id="compare-card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-balance-scale"></i> Product Comparison</div>
+            <span class="card-badge">Sample Data</span>
+          </div>
+          <div class="compare-grid" id="compare-grid"></div>
+        </div>
+
+        <!-- Trending Categories -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-fire"></i> Trending Categories</div>
+          </div>
+          <div class="trending-grid" id="trending-grid"></div>
+        </div>
+
+        <!-- Personalised Shopping List -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-list-check"></i> Shopping List</div>
+            <span class="card-badge">Personalised</span>
+          </div>
+          <div class="shopping-list" id="shopping-list"></div>
+        </div>
+
+        <!-- Sustainability Score -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-leaf"></i> Sustainability Score</div>
+            <span class="card-badge">Illustrative</span>
+          </div>
+          <div class="chart-wrapper"><canvas id="sustain-chart"></canvas></div>
+        </div>
+
+        <!-- Price Ranges -->
+        <div class="dashboard-card wide">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-tags"></i> Estimated Price Ranges</div>
+          </div>
+          <div class="chart-wrapper"><canvas id="price-chart"></canvas></div>
+        </div>
+
+      </div><!-- /dashboard-grid -->
+    </div>
+    <!-- /DASHBOARD VIEW -->
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Notification container -->
+<div id="notification-container"></div>
+
+<!-- ===================== JAVASCRIPT ===================== -->
+<script>
+/* ==============================================
+   CONFIG
+============================================== */
+const CONFIG = {
+  API_KEY: "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",
+  MODEL: "llama-3.3-70b-versatile",
+  API_URL: "https://api.groq.com/openai/v1/chat/completions"
+};
+
+const SYSTEM_PROMPT = `You are an intelligent AI Shopping Assistant specializing in product recommendations, product comparisons, budget optimization, buying advice, specification explanations, shopping guides, personalized recommendations, and smart purchasing decisions. When real-time shopping information is unavailable, clearly state that recommendations are based on general product knowledge rather than live marketplace data. Never invent prices or claim to have live access to shopping websites.
+
+When listing products, use clear markdown tables or bullet points with pros, cons, and price ranges. When comparing products, present a structured comparison. Always be helpful, concise, and accurate.`;
+
+const QUICK_PROMPTS = [
+  { icon: "fas fa-laptop",           text: "Best Laptop under ₹60,000" },
+  { icon: "fas fa-mobile-alt",       text: "Best Smartphone under ₹30,000" },
+  { icon: "fas fa-exchange-alt",     text: "Compare iPhone vs Samsung" },
+  { icon: "fas fa-headphones",       text: "Best Gaming Headphones" },
+  { icon: "fas fa-clock",            text: "Best Smartwatch" },
+  { icon: "fas fa-gamepad",          text: "Budget Gaming PC" },
+  { icon: "fas fa-camera",           text: "Best DSLR Camera" },
+  { icon: "fas fa-gift",             text: "Gift Ideas under ₹2000" },
+  { icon: "fas fa-chair",            text: "Home Office Setup" },
+  { icon: "fas fa-graduation-cap",   text: "Student Essentials" }
+];
+
+const TRENDING_CATEGORIES = [
+  { icon: "fas fa-laptop",        label: "Laptops",       color: "#3b82f6" },
+  { icon: "fas fa-mobile-alt",    label: "Phones",        color: "#8b5cf6" },
+  { icon: "fas fa-headphones",    label: "Audio",         color: "#06b6d4" },
+  { icon: "fas fa-tv",            label: "Displays",      color: "#10b981" },
+  { icon: "fas fa-gamepad",       label: "Gaming",        color: "#ec4899" },
+  { icon: "fas fa-camera",        label: "Cameras",       color: "#f59e0b" }
+];
+
+/* ==============================================
+   STATE
+============================================== */
+let state = {
+  messages: [],          // {role, content, timestamp, imageUrl?}
+  apiKey: "",
+  sessionStart: Date.now(),
+  totalTokens: 0,
+  pendingImage: null,    // {dataUrl, name}
+  isLoading: false,
+  currentView: "chat",
+  speechRecognition: null,
+  isListening: false,
+  shoppingList: JSON.parse(localStorage.getItem("sa_shopping_list") || "[]"),
+  charts: {}
+};
+
+/* ==============================================
+   UTILITY
+============================================== */
+function $(id) { return document.getElementById(id); }
+function formatTime(d = new Date()) {
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+function formatDuration(ms) {
+  const m = Math.floor(ms / 60000);
+  return m < 60 ? `${m}m` : `${Math.floor(m/60)}h ${m%60}m`;
+}
+function estimateTokens(text) { return Math.ceil(text.length / 3.8); }
+
+function notify(msg, type = "info", duration = 3500) {
+  const icons = { success: "fa-check-circle", error: "fa-exclamation-circle", info: "fa-info-circle", warning: "fa-exclamation-triangle" };
+  const el = document.createElement("div");
+  el.className = `notification ${type}`;
+  el.innerHTML = `<i class="fas ${icons[type]}"></i><span>${msg}</span>`;
+  $("notification-container").appendChild(el);
+  setTimeout(() => {
+    el.style.animation = "slideOutRight 0.3s ease forwards";
+    setTimeout(() => el.remove(), 300);
+  }, duration);
+}
+
+function autoResize(ta) {
+  ta.style.height = "auto";
+  ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
+}
+
+/* ==============================================
+   LOCAL STORAGE
+============================================== */
+function saveToStorage() {
+  localStorage.setItem("sa_messages", JSON.stringify(state.messages));
+  localStorage.setItem("sa_total_tokens", state.totalTokens);
+  localStorage.setItem("sa_shopping_list", JSON.stringify(state.shoppingList));
+}
+
+function loadFromStorage() {
+  // API Key
+  const savedKey = localStorage.getItem("sa_api_key");
+  if (savedKey) {
+    state.apiKey = savedKey;
+  } else {
+    // Persist default key on first run
+    state.apiKey = CONFIG.API_KEY;
+    localStorage.setItem("sa_api_key", CONFIG.API_KEY);
+  }
+  $("api-key-input").value = state.apiKey;
+
+  // Messages
+  const savedMsgs = localStorage.getItem("sa_messages");
+  if (savedMsgs) {
+    state.messages = JSON.parse(savedMsgs);
+    state.messages.forEach(m => appendMessageToDOM(m.role, m.content, m.timestamp, m.imageUrl));
+    if (state.messages.length > 0) $("welcome-card").classList.add("hidden");
+  }
+
+  // Tokens
+  state.totalTokens = parseInt(localStorage.getItem("sa_total_tokens") || "0");
+
+  // Shopping list
+  state.shoppingList = JSON.parse(localStorage.getItem("sa_shopping_list") || "[]");
+  if (state.shoppingList.length === 0) {
+    state.shoppingList = [
+      { name: "Wireless Earbuds", price: "₹2,000–₹5,000", checked: false },
+      { name: "Laptop Stand",     price: "₹800–₹2,500",   checked: false },
+      { name: "Mechanical Keyboard", price: "₹3,000–₹8,000", checked: true },
+      { name: "USB-C Hub",        price: "₹1,500–₹4,000", checked: false }
+    ];
+  }
+
+  updateStats();
+  renderHistoryList();
+}
+
+/* ==============================================
+   SIDEBAR SETUP
+============================================== */
+function setupQuickPrompts() {
+  const container = $("quick-prompts");
+  QUICK_PROMPTS.forEach(p => {
+    const btn = document.createElement("button");
+    btn.className = "quick-prompt-btn";
+    btn.innerHTML = `<i class="${p.icon}"></i>${p.text}`;
+    btn.addEventListener("click", () => {
+      switchView("chat");
+      $("chat-input").value = p.text;
+      autoResize($("chat-input"));
+      $("chat-input").focus();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function renderHistoryList() {
+  const list = $("history-list");
+  list.innerHTML = "";
+  if (state.messages.length === 0) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:4px 0">No history yet.</div>';
+    return;
+  }
+  const userMsgs = state.messages.filter(m => m.role === "user").slice(-8).reverse();
+  userMsgs.forEach(m => {
+    const item = document.createElement("div");
+    item.className = "history-item";
+    item.textContent = m.content.slice(0, 50) + (m.content.length > 50 ? "…" : "");
+    item.title = m.content;
+    list.appendChild(item);
+  });
+}
+
+/* ==============================================
+   VIEW SWITCHING
+============================================== */
+function switchView(view) {
+  state.currentView = view;
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.querySelectorAll(".tab-btn, .sidebar-item[data-view]").forEach(b => b.classList.remove("active"));
+
+  $(`${view}-view`).classList.add("active");
+  document.querySelectorAll(`[data-view="${view}"]`).forEach(b => b.classList.add("active"));
+
+  if (view === "dashboard") renderDashboard();
+}
+
+document.querySelectorAll("[data-view]").forEach(el => {
+  el.addEventListener("click", () => switchView(el.dataset.view));
+});
+
+/* ==============================================
+   SIDEBAR TOGGLE
+============================================== */
+$("toggle-sidebar-btn").addEventListener("click", () => {
+  $("sidebar").classList.toggle("collapsed");
+});
+
+/* ==============================================
+   API KEY MANAGEMENT
+============================================== */
+$("save-key-btn").addEventListener("click", () => {
+  const key = $("api-key-input").value.trim();
+  if (!key) { notify("Please enter an API key.", "warning"); return; }
+  state.apiKey = key;
+  localStorage.setItem("sa_api_key", key);
+  notify("API key saved successfully.", "success");
+});
+
+$("toggle-key-btn").addEventListener("click", () => {
+  const input = $("api-key-input");
+  const icon = $("toggle-key-btn").querySelector("i");
+  if (input.type === "password") {
+    input.type = "text";
+    icon.className = "fas fa-eye-slash";
+  } else {
+    input.type = "password";
+    icon.className = "fas fa-eye";
+  }
+});
+
+$("clear-key-btn").addEventListener("click", () => {
+  $("api-key-input").value = "";
+  state.apiKey = "";
+  localStorage.removeItem("sa_api_key");
+  notify("API key removed.", "info");
+});
+
+$("test-key-btn").addEventListener("click", async () => {
+  const key = $("api-key-input").value.trim() || state.apiKey;
+  if (!key) { notify("No API key to test.", "warning"); return; }
+  notify("Testing connection…", "info", 2000);
+  try {
+    const res = await fetch(CONFIG.API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+      body: JSON.stringify({ model: CONFIG.MODEL, messages: [{ role: "user", content: "Hi" }], max_tokens: 5 })
+    });
+    if (res.ok) notify("✓ Connection successful! API key is valid.", "success");
+    else {
+      const err = await res.json();
+      notify(`Connection failed: ${err.error?.message || res.statusText}`, "error");
+    }
+  } catch(e) {
+    notify(`Network error: ${e.message}`, "error");
+  }
+});
+
+/* ==============================================
+   CHAT — SEND MESSAGE
+============================================== */
+async function sendMessage() {
+  const input = $("chat-input");
+  const text = input.value.trim();
+  if (!text && !state.pendingImage) return;
+  if (state.isLoading) return;
+
+  const key = state.apiKey || localStorage.getItem("sa_api_key");
+  if (!key) { notify("Please add your Groq API key in the sidebar.", "warning"); return; }
+
+  const userContent = text || (state.pendingImage ? "[Image uploaded]" : "");
+  const timestamp = new Date().toISOString();
+  const imageUrl = state.pendingImage ? state.pendingImage.dataUrl : null;
+
+  // Add to state & DOM
+  state.messages.push({ role: "user", content: userContent, timestamp, imageUrl });
+  appendMessageToDOM("user", userContent, timestamp, imageUrl);
+  $("welcome-card").classList.add("hidden");
+  clearImagePreview();
+  input.value = "";
+  autoResize(input);
+
+  state.isLoading = true;
+  $("send-btn").disabled = true;
+
+  // Typing indicator
+  const typingEl = showTyping();
+  scrollToBottom();
+
+  try {
+    // Build messages for API
+    const apiMessages = [{ role: "system", content: SYSTEM_PROMPT }];
+    state.messages.slice(-20).forEach(m => {
+      if (m.role === "user" && m.imageUrl) {
+        // Note vision limitation
+        apiMessages.push({ role: "user", content: m.content + "\n\n[Note: An image was attached by the user. As this model does not support direct image analysis, please use the user's text description to assist.]" });
+      } else {
+        apiMessages.push({ role: m.role, content: m.content });
+      }
+    });
+
+    const res = await fetch(CONFIG.API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+      body: JSON.stringify({ model: CONFIG.MODEL, messages: apiMessages, max_tokens: 2048, temperature: 0.7 })
+    });
+
+    removeTyping(typingEl);
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const msg = errData.error?.message || res.statusText;
+      if (res.status === 401) notify("Invalid API key. Please update it in the sidebar.", "error");
+      else if (res.status === 429) notify("Rate limit reached. Please wait a moment.", "warning");
+      else notify(`API error: ${msg}`, "error");
+      state.isLoading = false;
+      $("send-btn").disabled = false;
+      return;
+    }
+
+    const data = await res.json();
+    const assistantText = data.choices?.[0]?.message?.content || "Sorry, I couldn't generate a response.";
+    const usedTokens = data.usage?.total_tokens || estimateTokens(userContent + assistantText);
+
+    state.totalTokens += usedTokens;
+    const aTimestamp = new Date().toISOString();
+    state.messages.push({ role: "assistant", content: assistantText, timestamp: aTimestamp });
+    appendMessageToDOM("assistant", assistantText, aTimestamp);
+    saveToStorage();
+    updateStats();
+    renderHistoryList();
+    scrollToBottom();
+
+  } catch(e) {
+    removeTyping(typingEl);
+    notify(`Network error: ${e.message}`, "error");
+  }
+
+  state.isLoading = false;
+  $("send-btn").disabled = false;
+}
+
+$("send-btn").addEventListener("click", sendMessage);
+
+$("chat-input").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+$("chat-input").addEventListener("input", function() { autoResize(this); });
+
+/* ==============================================
+   DOM — APPEND MESSAGE
+============================================== */
+function appendMessageToDOM(role, content, timestamp, imageUrl) {
+  const container = $("chat-messages");
+  const ts = timestamp ? new Date(timestamp) : new Date();
+  const row = document.createElement("div");
+  row.className = `msg-row ${role}`;
+
+  const avatarIcon = role === "user" ? "fas fa-user" : "fas fa-robot";
+  const avatarHtml = `<div class="msg-avatar"><i class="${avatarIcon}"></i></div>`;
+
+  let imageHtml = "";
+  if (imageUrl) imageHtml = `<img src="${imageUrl}" class="msg-image" alt="uploaded" />`;
+
+  let bubbleContent = "";
+  if (role === "assistant") {
+    try { bubbleContent = marked.parse(content); }
+    catch { bubbleContent = content; }
+  } else {
+    bubbleContent = escapeHtml(content).replace(/\n/g, "<br>");
+  }
+
+  const metaHtml = `<div class="msg-meta">
+    ${role === "assistant" ? '<i class="fas fa-robot" style="color:var(--neon-purple);font-size:10px;"></i>' : ""}
+    <span>${role === "user" ? "You" : "ShopAssist AI"}</span>
+    <span>${formatTime(ts)}</span>
+  </div>`;
+
+  const actionsHtml = role === "assistant"
+    ? `<div class="msg-actions">
+         <button class="msg-action-btn copy-btn"><i class="fas fa-copy"></i> Copy</button>
+       </div>`
+    : "";
+
+  const bodyHtml = `<div class="msg-body">
+    ${metaHtml}
+    ${imageHtml}
+    <div class="msg-bubble">${bubbleContent}</div>
+    ${actionsHtml}
+  </div>`;
+
+  row.innerHTML = role === "user"
+    ? bodyHtml + avatarHtml
+    : avatarHtml + bodyHtml;
+
+  container.appendChild(row);
+
+  // Add copy code buttons to pre blocks
+  row.querySelectorAll("pre").forEach(pre => {
+    const btn = document.createElement("button");
+    btn.className = "copy-code-btn";
+    btn.textContent = "Copy";
+    btn.addEventListener("click", () => {
+      navigator.clipboard.writeText(pre.querySelector("code")?.textContent || pre.textContent);
+      btn.textContent = "Copied!";
+      setTimeout(() => btn.textContent = "Copy", 1500);
+    });
+    pre.style.position = "relative";
+    pre.appendChild(btn);
+  });
+
+  // Copy response button
+  const copyBtn = row.querySelector(".copy-btn");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(content);
+      copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+      setTimeout(() => copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy', 1500);
+    });
+  }
+}
+
+function escapeHtml(text) {
+  return text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function showTyping() {
+  const container = $("chat-messages");
+  const row = document.createElement("div");
+  row.className = "typing-row";
+  row.id = "typing-indicator";
+  row.innerHTML = `
+    <div class="msg-avatar" style="background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.3);color:var(--neon-purple)"><i class="fas fa-robot"></i></div>
+    <div class="typing-bubble">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+  container.appendChild(row);
+  scrollToBottom();
+  return row;
+}
+
+function removeTyping(el) { if (el && el.parentNode) el.remove(); }
+
+function scrollToBottom() {
+  const c = $("chat-messages");
+  c.scrollTop = c.scrollHeight;
+}
+
+/* ==============================================
+   STATS
+============================================== */
+function updateStats() {
+  const msgCount = state.messages.length;
+  const duration = formatDuration(Date.now() - state.sessionStart);
+  const convLen = state.messages.filter(m => m.role === "user").length;
+
+  $("stat-msgs").textContent = msgCount;
+  $("stat-tokens").textContent = state.totalTokens > 999 ? (state.totalTokens/1000).toFixed(1)+"k" : state.totalTokens;
+  $("stat-duration").textContent = duration;
+  $("stat-convlen").textContent = convLen;
+
+  $("dash-msgs").textContent = msgCount;
+  $("dash-tokens").textContent = state.totalTokens > 999 ? (state.totalTokens/1000).toFixed(1)+"k" : state.totalTokens;
+  $("dash-duration").textContent = duration;
+  $("dash-convlen").textContent = convLen;
+}
+
+// Update session duration every minute
+setInterval(updateStats, 60000);
+
+/* ==============================================
+   VOICE INPUT
+============================================== */
+function setupVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    $("voice-btn").title = "Voice input not supported in this browser";
+    $("voice-btn").style.opacity = "0.4";
+    $("voice-btn").style.cursor = "not-allowed";
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  state.speechRecognition = recognition;
+
+  recognition.onresult = e => {
+    const transcript = e.results[0][0].transcript;
+    $("chat-input").value += transcript;
+    autoResize($("chat-input"));
+  };
+
+  recognition.onend = () => {
+    state.isListening = false;
+    $("voice-btn").classList.remove("listening");
+  };
+
+  recognition.onerror = e => {
+    state.isListening = false;
+    $("voice-btn").classList.remove("listening");
+    if (e.error !== "aborted") notify(`Voice error: ${e.error}`, "warning");
+  };
+
+  $("voice-btn").addEventListener("click", () => {
+    if (state.isListening) {
+      recognition.stop();
+    } else {
+      recognition.start();
+      state.isListening = true;
+      $("voice-btn").classList.add("listening");
+      notify("Listening… speak now.", "info", 2000);
+    }
+  });
+}
+
+/* ==============================================
+   IMAGE UPLOAD
+============================================== */
+$("image-btn").addEventListener("click", () => $("file-input").click());
+
+$("file-input").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) { notify("Please select an image file.", "warning"); return; }
+  if (file.size > 5 * 1024 * 1024) { notify("Image must be under 5MB.", "warning"); return; }
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    state.pendingImage = { dataUrl: ev.target.result, name: file.name };
+    showImagePreview(ev.target.result, file.name);
+  };
+  reader.readAsDataURL(file);
+  e.target.value = "";
+});
+
+function showImagePreview(dataUrl, name) {
+  const bar = $("image-preview-bar");
+  bar.classList.remove("hidden");
+  bar.innerHTML = `
+    <img src="${dataUrl}" alt="preview" />
+    <span>📎 ${name}</span>
+    <span style="font-size:11px;color:var(--text-muted);flex:1;">(Image info will be sent; direct analysis unavailable)</span>
+    <span class="remove-img" id="remove-img-btn"><i class="fas fa-times"></i></span>`;
+  $("remove-img-btn").addEventListener("click", clearImagePreview);
+}
+
+function clearImagePreview() {
+  state.pendingImage = null;
+  const bar = $("image-preview-bar");
+  bar.innerHTML = "";
+  bar.classList.add("hidden");
+}
+
+/* ==============================================
+   EXPORT / IMPORT / CLEAR
+============================================== */
+$("export-chat-btn").addEventListener("click", () => {
+  if (state.messages.length === 0) { notify("Nothing to export.", "warning"); return; }
+  const data = {
+    exportDate: new Date().toISOString(),
+    messages: state.messages,
+    totalTokens: state.totalTokens
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `shopassist-chat-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  notify("Chat exported successfully.", "success");
+});
+
+$("import-chat-btn").addEventListener("click", () => $("import-file-input").click());
+
+$("import-file-input").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.messages) throw new Error("Invalid format");
+      state.messages = data.messages;
+      state.totalTokens = data.totalTokens || 0;
+      saveToStorage();
+
+      const container = $("chat-messages");
+      container.innerHTML = "";
+      // Re-add welcome card
+      const wc = document.createElement("div");
+      wc.className = "welcome-card hidden";
+      wc.id = "welcome-card";
+      container.appendChild(wc);
+
+      state.messages.forEach(m => appendMessageToDOM(m.role, m.content, m.timestamp, m.imageUrl));
+      updateStats();
+      renderHistoryList();
+      notify("Chat imported successfully.", "success");
+    } catch {
+      notify("Failed to import: invalid file.", "error");
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+});
+
+$("clear-chat-btn").addEventListener("click", () => {
+  if (!confirm("Clear all conversation history?")) return;
+  state.messages = [];
+  state.totalTokens = 0;
+  saveToStorage();
+  const container = $("chat-messages");
+  container.innerHTML = `
+    <div class="welcome-card" id="welcome-card">
+      <div class="welcome-icon"><i class="fas fa-shopping-cart"></i></div>
+      <h2>Welcome to <span class="gradient-text">ShopAssist AI</span></h2>
+      <p>Your intelligent shopping companion. Ask me for product recommendations, comparisons, budget advice, gift ideas, and more — powered by Llama 3.3 70B.</p>
+    </div>`;
+  updateStats();
+  renderHistoryList();
+  notify("Conversation cleared.", "info");
+});
+
+/* ==============================================
+   DASHBOARD
+============================================== */
+const CHART_DEFAULTS = {
+  plugins: { legend: { labels: { color: "#94a3b8", font: { size: 11 } } } },
+  scales: { x: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(255,255,255,0.05)" } }, y: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(255,255,255,0.05)" } } }
+};
+
+function renderDashboard() {
+  updateStats();
+  renderCompareGrid();
+  renderTrendingGrid();
+  renderShoppingList();
+
+  // Destroy old charts before re-creating
+  Object.values(state.charts).forEach(c => c.destroy?.());
+  state.charts = {};
+
+  // Category Distribution (Doughnut)
+  const catCtx = $("cat-chart").getContext("2d");
+  state.charts.cat = new Chart(catCtx, {
+    type: "doughnut",
+    data: {
+      labels: ["Electronics", "Fashion", "Home", "Gaming", "Cameras", "Other"],
+      datasets: [{
+        data: [35, 20, 15, 18, 8, 4],
+        backgroundColor: ["#3b82f6","#8b5cf6","#06b6d4","#ec4899","#10b981","#f59e0b"],
+        borderWidth: 0
+      }]
+    },
+    options: { plugins: CHART_DEFAULTS.plugins, cutout: "65%", responsive: true, maintainAspectRatio: false }
+  });
+
+  // Budget Allocation (Doughnut)
+  const budgetCtx = $("budget-chart").getContext("2d");
+  const budgetData = [
+    { label: "Gadgets", pct: 40, color: "#3b82f6" },
+    { label: "Clothing", pct: 25, color: "#8b5cf6" },
+    { label: "Home Decor", pct: 15, color: "#06b6d4" },
+    { label: "Accessories", pct: 12, color: "#10b981" },
+    { label: "Misc", pct: 8, color: "#f59e0b" }
+  ];
+  state.charts.budget = new Chart(budgetCtx, {
+    type: "doughnut",
+    data: {
+      labels: budgetData.map(d => d.label),
+      datasets: [{
+        data: budgetData.map(d => d.pct),
+        backgroundColor: budgetData.map(d => d.color),
+        borderWidth: 0
+      }]
+    },
+    options: { plugins: CHART_DEFAULTS.plugins, cutout: "60%", responsive: true, maintainAspectRatio: false }
+  });
+  const legend = $("budget-legend");
+  legend.innerHTML = budgetData.map(d =>
+    `<div class="budget-item"><div class="budget-color" style="background:${d.color}"></div><span class="budget-label">${d.label}</span><span class="budget-pct">${d.pct}%</span></div>`
+  ).join("");
+
+  // Sustainability Score (Radar)
+  const susCtx = $("sustain-chart").getContext("2d");
+  state.charts.sustain = new Chart(susCtx, {
+    type: "radar",
+    data: {
+      labels: ["Eco Packaging","Energy Eff.","Durability","Recyclability","Carbon Footprint","Ethical Sourcing"],
+      datasets: [{
+        label: "Score",
+        data: [72, 65, 80, 58, 45, 70],
+        backgroundColor: "rgba(16,185,129,0.15)",
+        borderColor: "#10b981",
+        pointBackgroundColor: "#10b981",
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: CHART_DEFAULTS.plugins,
+      scales: { r: { ticks: { color: "#94a3b8", backdropColor: "transparent" }, grid: { color: "rgba(255,255,255,0.08)" }, pointLabels: { color: "#94a3b8", font: { size: 10 } } } }
+    }
+  });
+
+  // Price Ranges (Bar)
+  const priceCtx = $("price-chart").getContext("2d");
+  state.charts.price = new Chart(priceCtx, {
+    type: "bar",
+    data: {
+      labels: ["Budget Phones","Mid-Range Phones","Flagship Phones","Budget Laptops","Mid Laptops","Gaming Laptops","TWS Earbuds","Smartwatches"],
+      datasets: [
+        { label: "Min (₹)", data: [8000,15000,60000,25000,45000,70000,1500,3000], backgroundColor: "rgba(59,130,246,0.6)", borderRadius: 4 },
+        { label: "Max (₹)", data: [15000,45000,150000,45000,80000,200000,8000,30000], backgroundColor: "rgba(139,92,246,0.6)", borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: CHART_DEFAULTS.plugins,
+      scales: {
+        x: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.05)" } },
+        y: { ticks: { color: "#94a3b8", callback: v => "₹"+v.toLocaleString("en-IN") }, grid: { color: "rgba(255,255,255,0.05)" } }
+      }
+    }
+  });
+}
+
+function renderCompareGrid() {
+  const products = [
+    { name: "Samsung Galaxy S24", scores: { Value: 80, Camera: 90, Performance: 92, Battery: 78, Display: 93 } },
+    { name: "iPhone 15",          scores: { Value: 70, Camera: 95, Performance: 96, Battery: 80, Display: 91 } },
+    { name: "OnePlus 12",         scores: { Value: 90, Camera: 82, Performance: 89, Battery: 88, Display: 87 } }
+  ];
+  const grid = $("compare-grid");
+  grid.innerHTML = products.map(p => `
+    <div class="compare-item">
+      <div class="prod-name">${p.name}</div>
+      ${Object.entries(p.scores).map(([k,v]) => `
+        <div class="prod-score-row">
+          <span class="prod-score-label">${k}</span>
+          <div class="progress-bar"><div class="progress-fill" style="width:${v}%"></div></div>
+          <span style="font-size:11px;color:var(--text-secondary);width:30px;text-align:right">${v}</span>
+        </div>`).join("")}
+    </div>`).join("");
+}
+
+function renderTrendingGrid() {
+  const grid = $("trending-grid");
+  grid.innerHTML = TRENDING_CATEGORIES.map(c => `
+    <div class="trending-cat" onclick="window.trendingClick('${c.label}')">
+      <i class="${c.icon}" style="color:${c.color}"></i>
+      <span>${c.label}</span>
+    </div>`).join("");
+}
+
+window.trendingClick = function(label) {
+  switchView("chat");
+  $("chat-input").value = `What are the best ${label} to buy right now?`;
+  autoResize($("chat-input"));
+  $("chat-input").focus();
+};
+
+function renderShoppingList() {
+  const list = $("shopping-list");
+  list.innerHTML = state.shoppingList.map((item, i) => `
+    <div class="shopping-list-item">
+      <div class="item-check ${item.checked ? "checked" : ""}" onclick="toggleShoppingItem(${i})">${item.checked ? '<i class="fas fa-check"></i>' : ""}</div>
+      <span class="item-name" style="${item.checked ? "text-decoration:line-through;opacity:0.5" : ""}">${item.name}</span>
+      <span class="item-price">${item.price}</span>
+    </div>`).join("");
+}
+
+window.toggleShoppingItem = function(i) {
+  state.shoppingList[i].checked = !state.shoppingList[i].checked;
+  saveToStorage();
+  renderShoppingList();
+};
+
+/* ==============================================
+   INIT
+============================================== */
+function init() {
+  loadFromStorage();
+  setupQuickPrompts();
+  setupVoice();
+  updateStats();
+}
+
+init();
+</script>
+</body>
+</html>
